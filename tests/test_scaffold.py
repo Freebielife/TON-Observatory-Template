@@ -62,8 +62,17 @@ class ScaffoldTests(unittest.TestCase):
 
     @unittest.skipUnless(HAS_PILLOW, "Pillow is installed only for scaffold QA")
     def test_clean_independent_export_builds_offline(self):
+        self.config["project_description"] = {
+            "text": "Synthetic project description for offline QA.",
+            "origin": "reviewed_sources", "sources": ["https://example.org/sample"],
+            "checked_at": "2026-11-22"}
         self.save()
         scaffold(self.config_path, self.out)
+        readme = (self.out / "README.md").read_text()
+        self.assertIn(self.config["project_description"]["text"], readme)
+        self.assertIn("https://example.org/sample", readme)
+        self.assertEqual(json.loads((self.out / "project.json").read_text())["project_description"],
+                         self.config["project_description"])
         page = (self.out / "web/page.html").read_text()
         app = (self.out / "web/app.js").read_text()
         snapshot = (self.out / "data/snapshot.json").read_text()

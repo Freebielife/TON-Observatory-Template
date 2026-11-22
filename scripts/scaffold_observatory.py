@@ -19,6 +19,7 @@ from scripts.build_common_flags import build_common_atlas
 from scripts.check_reference import check_reference
 from scripts.foundation import install as install_foundation
 from scripts.project_branding import validate_config as validate_branding, install as install_branding, BrandingError
+from scripts.project_description import validate as validate_description, section as description_section
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT / "reference"
@@ -99,6 +100,10 @@ def local_image(base, value, label, suffixes, max_bytes):
 
 def read_config(path):
     cfg = json.loads(path.read_text())
+    try:
+        validate_description(cfg.get("project_description"))
+    except ValueError as error:
+        raise ProjectError(str(error)) from error
     slug, symbol, name = (require(cfg, k) for k in ("slug", "symbol", "name"))
     if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", slug):
         raise ProjectError("Invalid slug")
@@ -995,6 +1000,7 @@ html[lang="ru"] .customBadgeDescription [lang="en"] {display:none!important}
     (output / ".gitignore").write_text("build/\n__pycache__/\n*.pyc\n")
     (output / "README.md").write_text(
         "# " + cfg["name"] + " Observatory\n\n"
+        + description_section(cfg.get("project_description")) +
         "Generated from https://github.com/Freebielife/TON-Observatory-Template.\n\n"
         "Run python3 -m scripts.refresh_observatory; python3 build.py; python3 verify.py.\n"
         "Publish index.html in TON Sites only after independent on-chain verification.\n"

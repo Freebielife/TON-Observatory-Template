@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from scripts.http_json import fetch
 from scripts.project_runtime import VERSION, canonical_address
 from scripts.project_branding import prepare as prepare_branding
+from scripts.project_description import from_metadata, validate as validate_description
 
 GECKO = "https://api.geckoterminal.com/api/v2"
 NATIVE = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"
@@ -81,11 +82,15 @@ def discover(master, owner, repo, *, read=fetch):
     for liquidity, pool in sorted(candidates, key=lambda item: (-item[0], item[1]["address"])):
         unique.setdefault(canonical_address(pool["address"]), pool)
     pools = list(unique.values())
-    return {"slug": re.sub(r"[^a-z0-9-]", "-", repo.lower()), "name": name, "symbol": symbol,
+    cfg = {"slug": re.sub(r"[^a-z0-9-]", "-", repo.lower()), "name": name, "symbol": symbol,
             "master": master, "decimals": decimals, "github": {"owner": owner, "repo": repo},
             "pools": pools, "primary_pool": pools[0]["address"], "links": {}, "services": {},
             "_metadata_image": meta.get("image"), "engine_version": VERSION, "discovery": {"checkedAt": int(time.time()), "sources": sources,
                 "primaryPoolPolicy": "largest indexed USD liquidity among swap-verified supported TON pools"}}
+    description = from_metadata(meta, sources[0])
+    if description:
+        cfg["project_description"] = description
+    return cfg
 
 
 def main():
@@ -96,6 +101,8 @@ def main():
     parser.add_argument("--prepare-only", action="store_true", help="Generate sources without live collection/build")
     parser.add_argument("--website", help="Official project website for fallback logo/channel discovery")
     parser.add_argument("--channel", help="Project channel, https://t.me/channel")
+    parser.add_argument("--description-file", type=Path,
+                        help="Reviewed description JSON: text, origin, sources, checked_at")
     flags = parser.add_mutually_exclusive_group(required=True)
     flags.add_argument("--flag-key", help="Explicitly confirmed key in the bundled flag catalogue")
     flags.add_argument("--flag-file", type=Path, help="User-provided custom emoji image, WebP/GIF")
@@ -107,6 +114,12 @@ def main():
         parser.error("Output must be empty")
     try:
         cfg = discover(args.token, *args.github.split("/"))
+        if args.description_file:
+            description = json.loads(args.description_file.read_text())
+            validate_description(description)
+            if description is None:
+                raise ValueError("Description file must contain an object")
+            cfg["project_description"] = description
         import tempfile
         from scripts.scaffold_observatory import scaffold
         with tempfile.TemporaryDirectory() as directory:
