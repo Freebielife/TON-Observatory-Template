@@ -17,7 +17,7 @@ from scripts.project_description import from_metadata, validate as validate_desc
 
 GECKO = "https://api.geckoterminal.com/api/v2"
 NATIVE = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"
-DEXES = {"ston-fi": "stonfi", "stonfi": "stonfi", "dedust": "dedust"}
+DEXES = {"ston-fi": "stonfi", "stonfi": "stonfi", "stonfi-v2": "stonfi", "dedust": "dedust"}
 
 
 def discover(master, owner, repo, *, read=fetch):
