@@ -54,9 +54,13 @@ class FoundationTests(unittest.TestCase):
             if path.startswith('/jettons/'): return copy.deepcopy(metadata)
             if path.startswith('/networks/'): return {'data':[copy.deepcopy(candidate)]}
             return copy.deepcopy(events)
-        cfg=discover(token,'ExampleOrg','SampleToken',read=read)
-        self.assertEqual(cfg['primary_pool'],pool)
-        self.assertEqual(cfg['decimals'],6)
+        for dex_id in ('ston-fi', 'stonfi', 'stonfi-v2'):
+            with self.subTest(dex_id=dex_id):
+                candidate['relationships']['dex']['data']['id'] = dex_id
+                cfg=discover(token,'ExampleOrg','SampleToken',read=read)
+                self.assertEqual(cfg['primary_pool'],pool)
+                self.assertEqual(cfg['decimals'],6)
+                self.assertEqual(cfg['pools'][0]['dex'],'stonfi')
         events['events'][0]['actions'][0]['JettonSwap']['jetton_master_out']['address']=canonical_address(friendly(24))
         with self.assertRaises(ValueError): discover(token,'ExampleOrg','SampleToken',read=read)
 
